@@ -7,6 +7,7 @@
 
     <dependencies>
         <dependency org="com.rabbitmq" name="amqp-client" rev="3.1.0" />
-        <dependency org="redis.clients" name="jedis" rev="2.1.0"/>
+        <dependency org="redis.clients" name="jedis" rev="2.1.0" />
+	<dependency org="com.google.guava" name="guava" rev="14.0.1" />
     </dependencies>
 </ivy-module>

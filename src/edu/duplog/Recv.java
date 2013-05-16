@@ -1,19 +1,51 @@
 package edu.umd.duplog;
 
+import com.google.common.hash.Hashing;
+import com.google.common.hash.HashFunction;
+
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.QueueingConsumer;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
 
-public class Recv {
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Transaction;
+import redis.clients.jedis.Response;
+
+public class Recv extends Thread {
     private static final String QUEUE_NAME = "syslog";
+    private static final HashFunction HASH_FUNCTION = Hashing.murmur3_128();
 
-    public static void recv() {
+    private String host;
+    private String[] otherHosts;
+    private boolean running;
+
+    private Jedis jedis;
+
+    public Recv(String host, String[] otherHosts) {
+        this.host = host;
+        this.otherHosts = otherHosts;
+
+        jedis = new Jedis("localhost");
+    }
+
+    public void run() {
+        while (true) {
+            receive();
+            System.out.println(" [*] Restarting receiver for " + host);
+        }
+    }
+
+    private void receive() {
         try {
             ConnectionFactory factory = new ConnectionFactory();
-            factory.setHost("localhost");
+            factory.setHost(host);
             Connection connection = factory.newConnection();
             Channel channel = connection.createChannel();
 
@@ -27,13 +59,13 @@ public class Recv {
             QueueingConsumer consumer = new QueueingConsumer(channel);
             channel.basicConsume(QUEUE_NAME, autoAck, consumer);
             
-            System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
-
+            System.out.println(" [*] Waiting for messages from " + host);
+        
             while (true) {
                 QueueingConsumer.Delivery delivery = consumer.nextDelivery();
 
                 String message = new String(delivery.getBody());
-                System.out.println(" [x] Received '" + message + "'");
+                processMessage(message);
 
                 channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
             }
@@ -41,6 +73,50 @@ public class Recv {
             io.printStackTrace();
         } catch (InterruptedException ie) {
             ie.printStackTrace();
+        }
+    }
+
+    private void processMessage(String message) {
+        String hash = hashMessage(message), key;
+
+        Transaction t = jedis.multi();
+        for (String otherHost : otherHosts) {
+            key = otherHost + ":" + hash;
+            t.decr(key);
+        }
+
+        key = host + ":" + hash;
+        t.incr(key);
+
+        Response<String> count = t.get(key);
+        t.exec();
+
+        if (Integer.parseInt(count.get()) > 0) {
+            System.out.println(" [ ] Received '" + message + "' from " + host);
+        } else {
+            //System.out.println(" [D] Received '" + message + "' from " + host);
+        }
+    }
+
+    private static String hashMessage(String message) {
+        return HASH_FUNCTION.hashString(message).toString();
+    }
+
+    public static void recv(String[] hosts) {
+        Set<String> hostsSet = new HashSet<String>(Arrays.asList(hosts));
+
+        for (String host : hostsSet) {
+            Set<String> otherHosts = new HashSet<String>(hostsSet);
+            otherHosts.remove(host);
+            new Recv(host, otherHosts.toArray(new String[]{})).start();
+        }
+
+        synchronized (Recv.class) {
+            try {
+                Recv.class.wait();
+            } catch (InterruptedException ie) {
+                ie.printStackTrace();
+            }
         }
     }
 }

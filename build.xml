@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns:ivy="antlib:org.apache.ivy.ant" name="duplog" default="jar">
+<project xmlns:ivy="antlib:org.apache.ivy.ant" name="duplog" default="compile">
     <property name="package" value="edu/umd/duplog" />
     <property name="ivy.install.version" value="2.3.0"/>
     <property name="ivy.jar.file" value="ivy.jar" />
@@ -18,12 +18,24 @@
     </target>
     
     <target name="resolve" depends="get-ivy">
-        <ivy:retrieve type="jar" sync="true" />
+        <ivy:retrieve sync="true" />
     </target>
 
     <target name="compile" depends="resolve">
         <mkdir dir="${build.dir}" />
         <javac srcdir="${src.dir}" destdir="${build.dir}" classpathref="build.path.id" includeantruntime="false" />
+    </target>
+
+    <target name="send" depends="compile">
+        <java classname="edu.umd.duplog.Main" classpath="${build.dir}" classpathref="build.path.id" fork="true">
+            <arg value="send" />
+        </java>
+    </target>
+    
+    <target name="receive" depends="compile">
+        <java classname="edu.umd.duplog.Main" classpath="${build.dir}" classpathref="build.path.id" fork="true">
+            <arg value="receive" />
+        </java>
     </target>
     
     <target name="jar" depends="compile">

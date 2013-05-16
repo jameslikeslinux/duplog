@@ -14,7 +14,7 @@ public class Main {
         if (args[0].equals("send")) {
             Send.send();
         } else if (args[0].equals("receive")) {
-            Recv.recv();
+            Recv.recv(new String[]{"foo1", "foo2"});
         } else {
             usage();
         }
