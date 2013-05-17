@@ -12,31 +12,42 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Send {
+public class Injector {
+    private static final Logger logger = LoggerFactory.getLogger(Injector.class);
+    private static final String RABBITMQ_HOST = "localhost";
     private static final String QUEUE_NAME = "syslog";
-    private static final Logger logger = LoggerFactory.getLogger(Send.class);
 
-    public static void send() {
+    public static int inject() {
+        int ret = 0;
         Connection connection = null; 
         Channel channel = null;
         BufferedReader input = null;
 
         try {
             ConnectionFactory factory = new ConnectionFactory();
-            factory.setHost("localhost");
+            factory.setHost(RABBITMQ_HOST);
             connection = factory.newConnection();
             channel = connection.createChannel();
     
-            boolean durable = true;
+            // Queue declaration is idempotent
+            boolean durable = true;     // back queue by disk
             channel.queueDeclare(QUEUE_NAME, durable, false, false, null);
-   
+
+            // Simply read lines from stdin into RabbitMQ until told not to (EOF) 
             String line;
             input = new BufferedReader(new InputStreamReader(System.in));
             while ((line = input.readLine()) != null) { 
                 channel.basicPublish("", QUEUE_NAME, MessageProperties.PERSISTENT_TEXT_PLAIN, line.getBytes());
             }
         } catch (IOException io) {
+            /*
+             * If a connection fails, this process will end
+             * and rsyslog will restart it:
+             * http://www.rsyslog.com/doc/omprog.html
+             */
+            logger.error("Failed to connect to RabbitMQ on " + RABBITMQ_HOST);
             logger.debug("", io);
+            ret = 1;
         } finally {
             try {
                 if (input != null) { 
@@ -54,5 +65,7 @@ public class Send {
                 // do nothing
             }
         }
+
+        return ret;
     }
 }
