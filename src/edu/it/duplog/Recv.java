@@ -77,21 +77,17 @@ public class Recv extends Thread {
     }
 
     private void processMessage(String message) {
-        String hash = hashMessage(message), key;
+        String hash = hashMessage(message);
 
         Transaction t = jedis.multi();
         for (String otherHost : otherHosts) {
-            key = otherHost + ":" + hash;
-            t.decr(key);
+            t.decr(otherHost + ":" + hash);
         }
 
-        key = host + ":" + hash;
-        t.incr(key);
+        Response<Long> count = t.incr(host + ":" + hash);
+	t.exec();
 
-        Response<String> count = t.get(key);
-        t.exec();
-
-        if (Integer.parseInt(count.get()) > 0) {
+        if (count.get() > 0) {
             System.out.println(" [ ] Received '" + message + "' from " + host);
         } else {
             //System.out.println(" [D] Received '" + message + "' from " + host);
