@@ -25,18 +25,6 @@
         <javac srcdir="${src.dir}" destdir="${build.dir}" classpathref="build.path.id" includeantruntime="false" />
     </target>
 
-    <target name="send" depends="compile">
-        <java classname="edu.umd.it.duplog.Main" classpath="${build.dir}" classpathref="build.path.id" fork="true">
-            <arg value="send" />
-        </java>
-    </target>
-    
-    <target name="receive" depends="compile">
-        <java classname="edu.umd.it.duplog.Main" classpath="${build.dir}" classpathref="build.path.id" fork="true">
-            <arg value="receive" />
-        </java>
-    </target>
-    
     <target name="jar" depends="compile">
         <mkdir dir="${jar.dir}" />
     	
