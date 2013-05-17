@@ -8,11 +8,16 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.QueueingConsumer;
 
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
@@ -20,12 +25,13 @@ import redis.clients.jedis.Response;
 
 public class Recv extends Thread {
     private static final String QUEUE_NAME = "syslog";
-    private static final HashFunction HASH_FUNCTION = Hashing.murmur3_128();
+    private static final HashFunction hashFunction = Hashing.murmur3_128();
+    private static final Logger logger = LoggerFactory.getLogger(Recv.class);
+    private static PrintWriter output;
 
     private String host;
     private String[] otherHosts;
     private boolean running;
-
     private Jedis jedis;
 
     public Recv(String host, String[] otherHosts) {
@@ -38,7 +44,15 @@ public class Recv extends Thread {
     public void run() {
         while (true) {
             receive();
-            System.out.println(" [*] Restarting receiver for " + host);
+            logger.info("Died listening to " + host);
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ie) {
+                logger.debug("", ie);
+            }
+
+            logger.info("Restarting receiver for " + host);
         }
     }
 
@@ -59,7 +73,7 @@ public class Recv extends Thread {
             QueueingConsumer consumer = new QueueingConsumer(channel);
             channel.basicConsume(QUEUE_NAME, autoAck, consumer);
             
-            System.out.println(" [*] Waiting for messages from " + host);
+            logger.info("Waiting for messages from " + host);
         
             while (true) {
                 QueueingConsumer.Delivery delivery = consumer.nextDelivery();
@@ -70,9 +84,9 @@ public class Recv extends Thread {
                 channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
             }
         } catch (IOException io) {
-            io.printStackTrace();
+            logger.debug("", io);
         } catch (InterruptedException ie) {
-            ie.printStackTrace();
+            logger.debug("", ie);
         }
     }
 
@@ -85,20 +99,26 @@ public class Recv extends Thread {
         }
 
         Response<Long> count = t.incr(host + ":" + hash);
-	t.exec();
+        t.exec();
 
         if (count.get() > 0) {
-            System.out.println(" [ ] Received '" + message + "' from " + host);
-        } else {
-            //System.out.println(" [D] Received '" + message + "' from " + host);
+            output.println(message);
         }
     }
 
     private static String hashMessage(String message) {
-        return HASH_FUNCTION.hashString(message).toString();
+        return hashFunction.hashString(message).toString();
     }
 
     public static void recv(String[] hosts) {
+        try {
+            boolean autoFlush = true;
+            output = new PrintWriter(new FileWriter("/var/log/duplog.log"), autoFlush);
+        } catch (IOException io) {
+            logger.error("Cannot open log file", io);
+            System.exit(1);
+        }
+
         Set<String> hostsSet = new HashSet<String>(Arrays.asList(hosts));
 
         for (String host : hostsSet) {
@@ -111,7 +131,7 @@ public class Recv extends Thread {
             try {
                 Recv.class.wait();
             } catch (InterruptedException ie) {
-                ie.printStackTrace();
+                logger.debug("", ie);
             }
         }
     }

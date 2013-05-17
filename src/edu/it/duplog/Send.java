@@ -9,8 +9,12 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Send {
     private static final String QUEUE_NAME = "syslog";
+    private static final Logger logger = LoggerFactory.getLogger(Send.class);
 
     public static void send() {
         Connection connection = null; 
@@ -32,7 +36,7 @@ public class Send {
                 channel.basicPublish("", QUEUE_NAME, MessageProperties.PERSISTENT_TEXT_PLAIN, line.getBytes());
             }
         } catch (IOException io) {
-            io.printStackTrace();
+            logger.debug("", io);
         } finally {
             try {
                 if (input != null) { 
