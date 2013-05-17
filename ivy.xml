@@ -6,9 +6,10 @@
     <info organisation="edu.umd" module="duplog" />
 
     <dependencies>
-	<dependency org="ch.qos.logback" name="logback-classic" rev="1.0.12" />
+        <dependency org="ch.qos.logback" name="logback-classic" rev="1.0.12" />
+        <dependency org="net.sourceforge.argparse4j" name="argparse4j" rev="0.4.0" />
         <dependency org="com.rabbitmq" name="amqp-client" rev="3.1.0" />
         <dependency org="redis.clients" name="jedis" rev="2.1.0" />
-	<dependency org="com.google.guava" name="guava" rev="14.0.1" />
+        <dependency org="com.google.guava" name="guava" rev="14.0.1" />
     </dependencies>
 </ivy-module>
