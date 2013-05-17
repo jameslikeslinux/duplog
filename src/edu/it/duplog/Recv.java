@@ -1,4 +1,4 @@
-package edu.umd.duplog;
+package edu.umd.it.duplog;
 
 import com.google.common.hash.Hashing;
 import com.google.common.hash.HashFunction;

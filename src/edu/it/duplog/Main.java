@@ -1,4 +1,4 @@
-package edu.umd.duplog;
+package edu.umd.it.duplog;
 
 public class Main {
     private static void usage() {

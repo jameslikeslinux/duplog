@@ -1,4 +1,4 @@
-package edu.umd.duplog;
+package edu.umd.it.duplog;
 
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Connection;

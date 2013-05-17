@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns:ivy="antlib:org.apache.ivy.ant" name="duplog" default="compile">
-    <property name="package" value="edu/umd/duplog" />
     <property name="ivy.install.version" value="2.3.0"/>
     <property name="ivy.jar.file" value="ivy.jar" />
     <property name="src.dir" value="src" />
@@ -27,13 +26,13 @@
     </target>
 
     <target name="send" depends="compile">
-        <java classname="edu.umd.duplog.Main" classpath="${build.dir}" classpathref="build.path.id" fork="true">
+        <java classname="edu.umd.it.duplog.Main" classpath="${build.dir}" classpathref="build.path.id" fork="true">
             <arg value="send" />
         </java>
     </target>
     
     <target name="receive" depends="compile">
-        <java classname="edu.umd.duplog.Main" classpath="${build.dir}" classpathref="build.path.id" fork="true">
+        <java classname="edu.umd.it.duplog.Main" classpath="${build.dir}" classpathref="build.path.id" fork="true">
             <arg value="receive" />
         </java>
     </target>
@@ -42,7 +41,7 @@
         <mkdir dir="${jar.dir}" />
     	
         <!-- See "Merging archives" at http://ant.apache.org/manual/Tasks/jar.html -->
-        <jar destfile="${jar.dir}/duplog.jar" basedir="${build.dir}" includes="${package}/**">
+        <jar destfile="${jar.dir}/duplog.jar" basedir="${build.dir}" includes="**">
             <restrict>
                 <name name="**/*.class" />
                 <archives>
@@ -52,7 +51,7 @@
                 </archives>
             </restrict>
             <manifest>
-                <attribute name="Main-Class" value="edu.umd.duplog.Main" />
+                <attribute name="Main-Class" value="edu.umd.it.duplog.Main" />
             </manifest>
         </jar>
     </target>
