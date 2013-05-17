@@ -29,7 +29,7 @@ public class Main {
             if (command.equals("inject")) {
                 ret = Injector.inject();
             } else if (command.equals("extract")) {
-                Extractor.extract(
+                ret = Extractor.extract(
                     namespace.getList("syslog_server").toArray(new String[]{}),
                     namespace.getString("redis_server"),
                     namespace.getString("output_file")
