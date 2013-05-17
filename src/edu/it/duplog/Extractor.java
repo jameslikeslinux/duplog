@@ -117,8 +117,5 @@ public class Extractor extends Thread {
                 }
             }
         }
-
-        // this shouldn't happen
-        return 0;
     }
 }
