@@ -2,11 +2,11 @@
 Duplog will deduplicate messages from multiple similar streams.  This can be used to take syslog messages from multiple redundant rsyslog servers, strip out duplicates between the streams, and produce a complete record of log messages for an application like Splunk.
 
 ## Building ##
-You need Apache Ant and a Java JDK installed.  Then run
+You need Apache Ant and a Java JDK installed.  Then run:
 
     % ant
 
-to fetch all of the project's dependencies and compile the source.  An executable jar file can be built with
+to fetch all of the project's dependencies and compile the source.  An executable jar file can be built with:
 
     % ant jar
 
@@ -26,7 +26,7 @@ to fetch all of the project's dependencies and compile the source.  An executabl
 
     Finally, make sure [RabbitMQ](http://www.rabbitmq.com/) is running locally on the default port.
 
-*   On the destination server, where deduplicated log messages are required, simply run
+*   On the destination server, where deduplicated log messages are required, simply run:
 
         % java -jar /path/to/duplog.jar extract [-o OUTPUT_FILE] [-r REDIS_SERVER] syslog_server [syslog_server ...]
 
@@ -34,3 +34,25 @@ to fetch all of the project's dependencies and compile the source.  An executabl
 
         maxmemory <bytes>    # each unique message will consume about 100 bytes; configure based on messaging rate and available memory
         maxmemory-policy allkeys-lru
+
+## Benchmarking ##
+
+To get a rough idea of how Duplog performs, you can pipe generated messages through the system.
+
+*   On one or more syslog servers (as defined above), run:
+
+        % java -cp /path/to/duplog.jar edu.umd.it.duplog.benchmark.Producer <token> | java -jar /path/to/duplog.jar inject
+
+    where `token` is a short string that is the same on each message producer, but different for each run.  You should see an updating message like:
+
+        Messages produced: A last second / B per second average
+
+*   On one or more deduplicating servers (as defined above), run:
+
+        % java -jar /path/to/duplog.jar extract [-r REDIS_SERVER] syslog_server [syslog_server ...] -o - | java -cp /path/to/duplog.jar edu.umd.it.duplog.benchmark.Consumer
+
+    You should see an updating message like:
+
+        Messages consumed: X last second / Y per second average
+
+You will probably want to kill off the producers after a few seconds to avoid overwhelming the RabbitMQ queues.
