@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 public class Injector {
     private static final Logger logger = LoggerFactory.getLogger(Injector.class);
     private static final String RABBITMQ_HOST = "localhost";
+    private static final int HEARTBEAT = 60;
     private static final String QUEUE_NAME = "syslog";
 
     public static int inject() {
@@ -26,6 +27,7 @@ public class Injector {
         try {
             ConnectionFactory factory = new ConnectionFactory();
             factory.setHost(RABBITMQ_HOST);
+            factory.setRequestedHeartbeat(HEARTBEAT);
             connection = factory.newConnection();
             channel = connection.createChannel();
     
@@ -37,7 +39,7 @@ public class Injector {
             String line;
             input = new BufferedReader(new InputStreamReader(System.in));
             while ((line = input.readLine()) != null) { 
-                channel.basicPublish("", QUEUE_NAME, MessageProperties.PERSISTENT_TEXT_PLAIN, line.getBytes());
+                channel.basicPublish("", QUEUE_NAME, durable ? MessageProperties.PERSISTENT_TEXT_PLAIN : null, line.getBytes());
             }
         } catch (IOException io) {
             /*

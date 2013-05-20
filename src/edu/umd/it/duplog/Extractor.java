@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 public class Extractor extends Thread {
     private static final Logger logger = LoggerFactory.getLogger(Extractor.class);
+    private static final int HEARTBEAT = 60;
     private static final String QUEUE_NAME = "syslog";
     private static PrintStream output;
     private static Deduplicator deduplicator;
@@ -25,6 +26,53 @@ public class Extractor extends Thread {
     private String host;
     private String[] otherHosts;
     private boolean running;
+
+
+    private class Acknowledger extends Thread {
+        private Channel channel;
+        private long rate;
+        private boolean end;
+        private QueueingConsumer.Delivery delivery;
+
+        public Acknowledger(Channel channel, long rate) {
+            this.channel = channel;
+            this.rate = rate;
+        }
+
+        public void run() {
+            end = false;
+
+            while (!end) {
+                acknowledge();
+
+                try {
+                    sleep(rate);
+                } catch (InterruptedException ie) {
+                    logger.debug("", ie);
+                }
+            }
+        }
+
+        public void end() {
+            end = true;
+        }
+
+        public synchronized void setDelivery(QueueingConsumer.Delivery delivery) {
+            this.delivery = delivery;
+        }
+
+        private synchronized void acknowledge() {
+            if (delivery != null) {
+                try {
+                    boolean multiple = true;
+                    channel.basicAck(delivery.getEnvelope().getDeliveryTag(), multiple);
+                    delivery = null;
+                } catch (IOException io) {
+                    logger.debug("", io);
+                }
+            }
+        }
+    }
 
     public Extractor(String host, String[] otherHosts) {
         this.host = host;
@@ -47,27 +95,30 @@ public class Extractor extends Thread {
     }
 
     private void extract() {
+        Acknowledger acknowledger = null;
+
         try {
             ConnectionFactory factory = new ConnectionFactory();
             factory.setHost(host);
+            factory.setRequestedHeartbeat(HEARTBEAT);
             Connection connection = factory.newConnection();
             Channel channel = connection.createChannel();
-
+           
             // Queue declaration is idempotent
             boolean durable = true;     // back queue by disk
             channel.queueDeclare(QUEUE_NAME, durable, false, false, null);
-
-            // Process one message at a time; round-robin
-            int prefetchCount = 1;
-            channel.basicQos(prefetchCount);
 
             // ACK only after successfully processing messages
             boolean autoAck = false;
             QueueingConsumer consumer = new QueueingConsumer(channel);
             channel.basicConsume(QUEUE_NAME, autoAck, consumer);
             
+            // Acknowledge messages every second
+            acknowledger = new Acknowledger(channel, 1000);
+            acknowledger.start();
+
             logger.info("Waiting for messages from " + host);
-        
+
             while (true) {
                 QueueingConsumer.Delivery delivery = consumer.nextDelivery();   // blocks
 
@@ -76,12 +127,14 @@ public class Extractor extends Thread {
                     output.println(message);
                 }
 
-                channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+                acknowledger.setDelivery(delivery);
             }
-        } catch (IOException io) {
-            logger.debug("", io);
-        } catch (InterruptedException ie) {
-            logger.debug("", ie);
+        } catch (Exception e) {
+            logger.debug("", e);
+        } finally {
+            if (acknowledger != null) {
+                acknowledger.end();
+            }
         }
     }
 

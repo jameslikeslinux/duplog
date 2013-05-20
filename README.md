@@ -54,5 +54,3 @@ To get a rough idea of how Duplog performs, you can pipe generated messages thro
     You should see an updating message like:
 
         Messages consumed: X last second / Y per second average
-
-You will probably want to kill off the producers after a few seconds to avoid overwhelming the RabbitMQ queues.
