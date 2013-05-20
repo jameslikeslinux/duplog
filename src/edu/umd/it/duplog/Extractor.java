@@ -108,6 +108,10 @@ public class Extractor extends Thread {
             boolean durable = true;     // back queue by disk
             channel.queueDeclare(QUEUE_NAME, durable, false, false, null);
 
+            // Receive unlimited messages when available
+            int prefetchCount = 0;
+            channel.basicQos(prefetchCount);
+
             // ACK only after successfully processing messages
             boolean autoAck = false;
             QueueingConsumer consumer = new QueueingConsumer(channel);
