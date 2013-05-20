@@ -25,7 +25,11 @@
         <javac srcdir="${src.dir}" destdir="${build.dir}" classpathref="build.path.id" includeantruntime="false" />
     </target>
 
-    <target name="jar" depends="compile">
+    <target name="resources" depends="compile">
+        <copy file="${src.dir}/logback.xml" todir="${build.dir}" />
+    </target>
+
+    <target name="jar" depends="resources">
         <mkdir dir="${jar.dir}" />
     	
         <!-- See "Merging archives" at http://ant.apache.org/manual/Tasks/jar.html -->

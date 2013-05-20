@@ -5,9 +5,9 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.QueueingConsumer;
 
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Random;
@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 public class Extractor extends Thread {
     private static final Logger logger = LoggerFactory.getLogger(Extractor.class);
     private static final String QUEUE_NAME = "syslog";
-    private static PrintWriter output;
+    private static PrintStream output;
     private static Deduplicator deduplicator;
 
     private String host;
@@ -89,9 +89,13 @@ public class Extractor extends Thread {
         // Open log file for writing
         // XXX: How does this handle log rotation?
         try {
-            boolean append = true;
-            boolean autoFlush = true;
-            output = new PrintWriter(new FileWriter(outputFile, append), autoFlush);
+            if (outputFile.equals("-")) {
+                output = System.out;
+            } else {
+                boolean append = true;
+                boolean autoFlush = true;
+                output = new PrintStream(new FileOutputStream(outputFile, append), autoFlush);
+            }
         } catch (IOException io) {
             logger.error("Cannot open log file", io);
             return 1;

@@ -67,7 +67,8 @@ public class Deduplicator {
                 duplicate = true;
             }
         } catch (JedisConnectionException jce) {
-            logger.error("Failed to connect to Redis server at " + redisServer, jce);
+            logger.error("Connection to Redis server at " + redisServer + " failed");
+            logger.debug("", jce);
 
             // Don't try talk to Redis for five seconds after a failure
             // TODO: Make this an exponential backoff?
